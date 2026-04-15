@@ -46,7 +46,7 @@ h1 {
   width: 45px;
   height: 45px;
   object-fit: contain;
-  flex-shrink: 0;
+  transition: 0.15s ease;
 }
 
 button {
@@ -178,7 +178,7 @@ function changeMatchday(){
   renderTable();
 }
 
-/* ⚡ MATCHES RENDER */
+/* ⚡ MATCHES */
 function renderMatches(){
   let data = loadData();
   let day = currentDay();
@@ -190,9 +190,9 @@ function renderMatches(){
     html += `
     <div class="match">
 
-      <img class="logo1" src="${getLogo(m.team1)}" loading="lazy">
+      <img class="logo1" src="${getLogo(m.team1)}">
 
-      <select class="team1" data-index="${i}">
+      <select class="team1" data-i="${i}">
         ${teamOptions(m.team1)}
       </select>
 
@@ -200,11 +200,11 @@ function renderMatches(){
       <span style="font-size:18px;">:</span>
       <input type="number" id="t2-${i}" value="${m.t2||""}">
 
-      <select class="team2" data-index="${i}">
+      <select class="team2" data-i="${i}">
         ${teamOptions(m.team2)}
       </select>
 
-      <img class="logo2" src="${getLogo(m.team2)}" loading="lazy">
+      <img class="logo2" src="${getLogo(m.team2)}">
 
       <button onclick="save(${i})">Speichern</button>
       <button onclick="removeMatch(${i})">❌</button>
@@ -214,25 +214,27 @@ function renderMatches(){
 
   document.getElementById("matches").innerHTML = html;
 
-  /* ⚡ LIVE LOGO UPDATE */
+  /* ⚡ INSTANT LOGO UPDATE */
   document.querySelectorAll(".team1").forEach(sel=>{
-    sel.onchange = (e) => {
+    sel.oninput = (e) => {
       const match = e.target.closest(".match");
       match.querySelector(".logo1").src = getLogo(e.target.value);
       saveAuto();
+      renderTable();
     };
   });
 
   document.querySelectorAll(".team2").forEach(sel=>{
-    sel.onchange = (e) => {
+    sel.oninput = (e) => {
       const match = e.target.closest(".match");
       match.querySelector(".logo2").src = getLogo(e.target.value);
       saveAuto();
+      renderTable();
     };
   });
 }
 
-/* ⚡ AUTOSAVE */
+/* 💾 AUTO SAVE */
 function saveAuto(){
   let data = loadData();
   let day = currentDay();
@@ -248,9 +250,9 @@ function saveAuto(){
   });
 
   saveData(data);
-  renderTable();
 }
 
+/* ➕ MATCH */
 function addMatch(){
   let data = loadData();
   let day = currentDay();
@@ -267,6 +269,7 @@ function addMatch(){
   renderMatches();
 }
 
+/* ❌ DELETE */
 function removeMatch(i){
   let data = loadData();
   let day = currentDay();
