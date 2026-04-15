@@ -17,7 +17,6 @@ h1 {
   padding: 15px;
 }
 
-/* MATCH CARD */
 .match {
   background: white;
   margin: 12px auto;
@@ -28,10 +27,9 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 70px; /* verhindert "zittern" */
+  min-height: 70px;
 }
 
-/* Inputs + Selects */
 .match select,
 .match input {
   padding: 8px;
@@ -44,16 +42,15 @@ h1 {
   font-size: 16px;
 }
 
-/* LOGOS STABIL */
 .match img {
   width: 45px;
   height: 45px;
   object-fit: contain;
-  display: block;
   flex-shrink: 0;
+  image-rendering: auto;
+  transform: translateZ(0);
 }
 
-/* BUTTONS */
 button {
   margin-top: 5px;
   padding: 6px 12px;
@@ -68,7 +65,6 @@ button:hover {
   background: #005fa3;
 }
 
-/* TABLE */
 table {
   margin: 20px auto;
   border-collapse: collapse;
@@ -86,7 +82,6 @@ th {
   color: white;
 }
 
-/* TABLE LOGOS */
 td img {
   width: 28px;
   height: 28px;
@@ -124,7 +119,7 @@ td img {
 
 const fallbackLogo = "https://upload.wikimedia.org/wikipedia/commons/8/84/No_Image_Available.jpg";
 
-/* ⚽ TEAMS (FIXED + STABIL) */
+/* ⚽ TEAMS */
 const teams = [
 {name:"Bayern", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/132.png"},
 {name:"Dortmund", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/124.png"},
@@ -139,7 +134,6 @@ const teams = [
 {name:"Gladbach", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/268.png"},
 {name:"Köln", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/122.png"},
 
-/* ✅ LOKALE BILDER (WICHTIG: KEIN C:\ MEHR!) */
 {name:"Heidenheim", logo:"transfer/heidenheim.png"},
 {name:"St. Pauli", logo:"transfer/stpauli.png"},
 {name:"Hamburg", logo:"transfer/hsv.png"},
@@ -148,7 +142,6 @@ const teams = [
 
 {name:"Bremen", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/137.png"}
 ];
-
 
 function getLogo(name){
   const team = teams.find(t => t.name === name);
@@ -187,6 +180,7 @@ function changeMatchday(){
   renderTable();
 }
 
+/* ✅ FIX: stabile Dropdowns ohne Flackern */
 function renderMatches(){
   let data = loadData();
   let day = currentDay();
@@ -197,7 +191,9 @@ function renderMatches(){
   matches.forEach((m,i)=>{
     html += `
     <div class="match">
-      <img src="${getLogo(m.team1)}" onerror="this.src='${fallbackLogo}'">
+
+      <img src="${getLogo(m.team1)}" loading="lazy" decoding="async"
+      onerror="this.src='${fallbackLogo}'">
 
       <select id="team1-${i}">${teamOptions(m.team1)}</select>
 
@@ -207,14 +203,42 @@ function renderMatches(){
 
       <select id="team2-${i}">${teamOptions(m.team2)}</select>
 
-      <img src="${getLogo(m.team2)}" onerror="this.src='${fallbackLogo}'">
+      <img src="${getLogo(m.team2)}" loading="lazy" decoding="async"
+      onerror="this.src='${fallbackLogo}'">
 
       <button onclick="save(${i})">Speichern</button>
       <button onclick="removeMatch(${i})">❌</button>
+
     </div>`;
   });
 
   document.getElementById("matches").innerHTML = html;
+
+  /* 🔥 WICHTIG: Events nach Render stabilisieren */
+  document.querySelectorAll("select").forEach(sel=>{
+    sel.onchange = () => {
+      saveAuto();
+    };
+  });
+}
+
+/* ⚡ Autosave ohne Re-Render (fix für Dropdown-Bug) */
+function saveAuto(){
+  let data = loadData();
+  let day = currentDay();
+  let matches = data[day];
+
+  document.querySelectorAll(".match").forEach((el,i)=>{
+    if(!matches[i]) return;
+
+    matches[i].team1 = document.getElementById(`team1-${i}`).value;
+    matches[i].team2 = document.getElementById(`team2-${i}`).value;
+    matches[i].t1 = document.getElementById(`t1-${i}`).value;
+    matches[i].t2 = document.getElementById(`t2-${i}`).value;
+  });
+
+  saveData(data);
+  renderTable();
 }
 
 function addMatch(){
@@ -245,19 +269,7 @@ function removeMatch(i){
 }
 
 function save(i){
-  let data = loadData();
-  let day = currentDay();
-
-  let m = data[day][i];
-
-  m.team1 = document.getElementById(`team1-${i}`).value;
-  m.team2 = document.getElementById(`team2-${i}`).value;
-  m.t1 = document.getElementById(`t1-${i}`).value;
-  m.t2 = document.getElementById(`t2-${i}`).value;
-
-  saveData(data);
-  renderMatches();
-  renderTable();
+  saveAuto();
 }
 
 function renderTable(){
@@ -272,8 +284,8 @@ function renderTable(){
     day.forEach(m=>{
       if(m.t1==="" || m.t2==="") return;
 
-      let t1 = parseInt(m.t1);
-      let t2 = parseInt(m.t2);
+      let t1 = parseInt(m.t1) || 0;
+      let t2 = parseInt(m.t2) || 0;
 
       table[m.team1].goals += t1;
       table[m.team2].goals += t2;
@@ -293,7 +305,7 @@ function renderTable(){
   let html="";
   sorted.forEach(([team,val])=>{
     html+=`<tr>
-      <td><img src="${getLogo(team)}" onerror="this.src='${fallbackLogo}'"> ${team}</td>
+      <td><img src="${getLogo(team)}"> ${team}</td>
       <td>${val.points}</td>
       <td>${val.goals}</td>
     </tr>`;
