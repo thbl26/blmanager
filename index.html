@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Bundesliga Manager</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #eef2f7;
+  text-align: center;
+}
+
+h1 {
+  background: #d00000;
+  color: white;
+  padding: 15px;
+}
+
+.match {
+  background: white;
+  margin: 12px auto;
+  padding: 18px;
+  width: 650px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 70px;
+}
+
+.match select,
+.match input {
+  padding: 8px;
+  font-size: 14px;
+}
+
+.match input {
+  width: 55px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.match img {
+  width: 45px;
+  height: 45px;
+  object-fit: contain;
+  flex-shrink: 0;
+  image-rendering: auto;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+button {
+  margin-top: 5px;
+  padding: 6px 12px;
+  border: none;
+  background: #0077cc;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #005fa3;
+}
+
+table {
+  margin: 20px auto;
+  border-collapse: collapse;
+  width: 650px;
+  background: white;
+}
+
+th, td {
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background: #333;
+  color: white;
+}
+
+td img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>⚽ Bundesliga Manager</h1>
+
+<label>Spieltag:</label>
+<select id="matchday" onchange="changeMatchday()"></select>
+
+<div id="matches"></div>
+
+<button onclick="addMatch()">➕ Spiel hinzufügen</button>
+
+<h2>📊 Tabelle</h2>
+<table>
+<thead>
+<tr>
+<th>Team</th>
+<th>Punkte</th>
+<th>Tore</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+
+<script>
+
+const fallbackLogo = "https://upload.wikimedia.org/wikipedia/commons/8/84/No_Image_Available.jpg";
+
+/* ⚽ TEAMS (FIXED + STABIL) */
+const teams = [
+{name:"Bayern", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/132.png"},
+{name:"Dortmund", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/124.png"},
+{name:"Leipzig", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/11420.png"},
+{name:"Leverkusen", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/131.png"},
+{name:"Stuttgart", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/134.png"},
+{name:"Frankfurt", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/125.png"},
+{name:"Freiburg", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/126.png"},
+{name:"Union", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/598.png"},
+{name:"Wolfsburg", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/138.png"},
+{name:"Mainz", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/2950.png"},
+{name:"Gladbach", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/268.png"},
+{name:"Köln", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/122.png"},
+
+/* ✅ LOKALE BILDER (WICHTIG: KEIN C:\ MEHR!) */
+{name:"Heidenheim", logo:"transfer/heidenheim.png"},
+{name:"St. Pauli", logo:"transfer/stpauli.png"},
+{name:"Hamburg", logo:"transfer/hsv.png"},
+{name:"Augsburg", logo:"transfer/augsburg.png"},
+{name:"Hoffenheim", logo:"transfer/hoffenheim.png"},
+
+{name:"Bremen", logo:"https://a.espncdn.com/i/teamlogos/soccer/500/137.png"}
+];
+
+function getLogo(name){
+  const team = teams.find(t => t.name === name);
+  return team ? team.logo : fallbackLogo;
+}
+
+function teamOptions(selected){
+  return teams.map(t =>
+    `<option value="${t.name}" ${t.name===selected?"selected":""}>${t.name}</option>`
+  ).join("");
+}
+
+function loadData(){
+  return JSON.parse(localStorage.getItem("bundesliga") || "{}");
+}
+
+function saveData(data){
+  localStorage.setItem("bundesliga", JSON.stringify(data));
+}
+
+function currentDay(){
+  return document.getElementById("matchday").value;
+}
+
+function renderMatchdays(){
+  let select = document.getElementById("matchday");
+  let html = "";
+  for(let i=1;i<=34;i++){
+    html += `<option value="${i}">Spieltag ${i}</option>`;
+  }
+  select.innerHTML = html;
+}
+
+function changeMatchday(){
+  renderMatches();
+  renderTable();
+}
+
+function renderMatches(){
+  let data = loadData();
+  let day = currentDay();
+  let matches = data[day] || [];
+
+  let html = "";
+
+  matches.forEach((m,i)=>{
+    html += `
+    <div class="match">
+
+      <img src="${getLogo(m.team1)}" loading="lazy" decoding="async"
+      onerror="this.src='${fallbackLogo}'">
+
+      <select id="team1-${i}" onchange="renderMatches();renderTable();">
+        ${teamOptions(m.team1)}
+      </select>
+
+      <input type="number" id="t1-${i}" value="${m.t1||""}">
+      <span style="font-size:18px;">:</span>
+      <input type="number" id="t2-${i}" value="${m.t2||""}">
+
+      <select id="team2-${i}" onchange="renderMatches();renderTable();">
+        ${teamOptions(m.team2)}
+      </select>
+
+      <img src="${getLogo(m.team2)}" loading="lazy" decoding="async"
+      onerror="this.src='${fallbackLogo}'">
+
+      <button onclick="save(${i})">Speichern</button>
+      <button onclick="removeMatch(${i})">❌</button>
+
+    </div>`;
+  });
+
+  document.getElementById("matches").innerHTML = html;
+}
+
+function addMatch(){
+  let data = loadData();
+  let day = currentDay();
+
+  if(!data[day]) data[day]=[];
+
+  data[day].push({
+    team1: teams[0].name,
+    team2: teams[1].name,
+    t1:"", t2:""
+  });
+
+  saveData(data);
+  renderMatches();
+}
+
+function removeMatch(i){
+  let data = loadData();
+  let day = currentDay();
+
+  data[day].splice(i,1);
+
+  saveData(data);
+  renderMatches();
+  renderTable();
+}
+
+function save(i){
+  let data = loadData();
+  let day = currentDay();
+
+  let m = data[day][i];
+
+  m.team1 = document.getElementById(`team1-${i}`).value;
+  m.team2 = document.getElementById(`team2-${i}`).value;
+
+  if(m.team1 === m.team2){
+    alert("Bitte zwei unterschiedliche Teams wählen!");
+    return;
+  }
+
+  m.t1 = document.getElementById(`t1-${i}`).value;
+  m.t2 = document.getElementById(`t2-${i}`).value;
+
+  saveData(data);
+  renderMatches();
+  renderTable();
+}
+
+function renderTable(){
+  let data = loadData();
+  let table = {};
+
+  teams.forEach(t=>{
+    table[t.name]={points:0, goals:0};
+  });
+
+  Object.values(data).forEach(day=>{
+    day.forEach(m=>{
+      if(m.t1==="" || m.t2==="") return;
+
+      let t1 = parseInt(m.t1) || 0;
+      let t2 = parseInt(m.t2) || 0;
+
+      table[m.team1].goals += t1;
+      table[m.team2].goals += t2;
+
+      if(t1 > t2) table[m.team1].points += 3;
+      else if(t2 > t1) table[m.team2].points += 3;
+      else {
+        table[m.team1].points += 1;
+        table[m.team2].points += 1;
+      }
+    });
+  });
+
+  let sorted = Object.entries(table)
+    .sort((a,b)=>b[1].points - a[1].points || b[1].goals - a[1].goals);
+
+  let html="";
+  sorted.forEach(([team,val])=>{
+    html+=`<tr>
+      <td><img src="${getLogo(team)}" loading="lazy" decoding="async"
+      onerror="this.src='${fallbackLogo}'"> ${team}</td>
+      <td>${val.points}</td>
+      <td>${val.goals}</td>
+    </tr>`;
+  });
+
+  document.getElementById("table").innerHTML=html;
+}
+
+renderMatchdays();
+renderMatches();
+renderTable();
+
+</script>
+
+</body>
+</html>
