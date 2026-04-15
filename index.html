@@ -2,10 +2,6 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-
-<!-- 📱 WICHTIG FÜR IPAD / MOBILE -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Bundesliga Manager</title>
 
 <style>
@@ -13,76 +9,72 @@ body {
   font-family: Arial;
   background: #eef2f7;
   text-align: center;
-  margin: 0;
 }
 
 h1 {
   background: #d00000;
   color: white;
-  padding: 12px;
-  font-size: 20px;
+  padding: 15px;
 }
 
-/* MATCH CARD */
 .match {
   background: white;
-  margin: 6px auto;
-  padding: 10px;
+  margin: 12px auto;
+  padding: 18px;
   width: 650px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 52px;
+  gap: 10px;
+  min-height: 70px;
 }
 
 .match select,
 .match input {
-  padding: 5px;
-  font-size: 13px;
+  padding: 8px;
+  font-size: 14px;
 }
 
 .match input {
-  width: 50px;
+  width: 55px;
   text-align: center;
+  font-size: 16px;
 }
 
 .match img {
-  width: 36px;
-  height: 36px;
+  width: 45px;
+  height: 45px;
   object-fit: contain;
-  transition: 0.15s ease;
+  flex-shrink: 0;
+  image-rendering: auto;
+  transform: translateZ(0);
 }
 
-/* BUTTONS */
 button {
   margin-top: 5px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border: none;
   background: #0077cc;
   color: white;
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 13px;
 }
 
 button:hover {
   background: #005fa3;
 }
 
-/* TABLE */
 table {
-  margin: 15px auto;
+  margin: 20px auto;
   border-collapse: collapse;
   width: 650px;
   background: white;
 }
 
 th, td {
-  padding: 6px;
+  padding: 8px;
   border-bottom: 1px solid #ddd;
-  font-size: 14px;
 }
 
 th {
@@ -91,49 +83,11 @@ th {
 }
 
 td img {
-  width: 24px;
-  height: 24px;
-  margin-right: 5px;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
   vertical-align: middle;
-}
-
-/* 📱 IPAD / MOBILE */
-@media (max-width: 900px) {
-
-  .match {
-    width: 95%;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 12px;
-  }
-
-  .match select {
-    width: 42%;
-  }
-
-  .match input {
-    width: 60px;
-    font-size: 16px;
-  }
-
-  .match img {
-    width: 30px;
-    height: 30px;
-  }
-
-  table {
-    width: 95%;
-  }
-
-  button {
-    width: 48%;
-    font-size: 14px;
-  }
-
-  h1 {
-    font-size: 18px;
-  }
+  margin-right: 6px;
 }
 </style>
 </head>
@@ -226,7 +180,7 @@ function changeMatchday(){
   renderTable();
 }
 
-/* ⚡ MATCHES */
+/* ✅ FIX: stabile Dropdowns ohne Flackern */
 function renderMatches(){
   let data = loadData();
   let day = currentDay();
@@ -238,21 +192,19 @@ function renderMatches(){
     html += `
     <div class="match">
 
-      <img class="logo1" src="${getLogo(m.team1)}">
+      <img src="${getLogo(m.team1)}" loading="lazy" decoding="async"
+      onerror="this.src='${fallbackLogo}'">
 
-      <select class="team1" data-i="${i}">
-        ${teamOptions(m.team1)}
-      </select>
+      <select id="team1-${i}">${teamOptions(m.team1)}</select>
 
       <input type="number" id="t1-${i}" value="${m.t1||""}">
-      <span style="font-size:16px;">:</span>
+      <span style="font-size:18px;">:</span>
       <input type="number" id="t2-${i}" value="${m.t2||""}">
 
-      <select class="team2" data-i="${i}">
-        ${teamOptions(m.team2)}
-      </select>
+      <select id="team2-${i}">${teamOptions(m.team2)}</select>
 
-      <img class="logo2" src="${getLogo(m.team2)}">
+      <img src="${getLogo(m.team2)}" loading="lazy" decoding="async"
+      onerror="this.src='${fallbackLogo}'">
 
       <button onclick="save(${i})">Speichern</button>
       <button onclick="removeMatch(${i})">❌</button>
@@ -262,27 +214,15 @@ function renderMatches(){
 
   document.getElementById("matches").innerHTML = html;
 
-  /* ⚡ LIVE LOGO UPDATE */
-  document.querySelectorAll(".team1").forEach(sel=>{
-    sel.oninput = (e) => {
-      const match = e.target.closest(".match");
-      match.querySelector(".logo1").src = getLogo(e.target.value);
+  /* 🔥 WICHTIG: Events nach Render stabilisieren */
+  document.querySelectorAll("select").forEach(sel=>{
+    sel.onchange = () => {
       saveAuto();
-      renderTable();
-    };
-  });
-
-  document.querySelectorAll(".team2").forEach(sel=>{
-    sel.oninput = (e) => {
-      const match = e.target.closest(".match");
-      match.querySelector(".logo2").src = getLogo(e.target.value);
-      saveAuto();
-      renderTable();
     };
   });
 }
 
-/* 💾 SAVE */
+/* ⚡ Autosave ohne Re-Render (fix für Dropdown-Bug) */
 function saveAuto(){
   let data = loadData();
   let day = currentDay();
@@ -291,16 +231,16 @@ function saveAuto(){
   document.querySelectorAll(".match").forEach((el,i)=>{
     if(!matches[i]) return;
 
-    matches[i].team1 = el.querySelector(".team1").value;
-    matches[i].team2 = el.querySelector(".team2").value;
+    matches[i].team1 = document.getElementById(`team1-${i}`).value;
+    matches[i].team2 = document.getElementById(`team2-${i}`).value;
     matches[i].t1 = document.getElementById(`t1-${i}`).value;
     matches[i].t2 = document.getElementById(`t2-${i}`).value;
   });
 
   saveData(data);
+  renderTable();
 }
 
-/* ➕ ADD */
 function addMatch(){
   let data = loadData();
   let day = currentDay();
@@ -317,7 +257,6 @@ function addMatch(){
   renderMatches();
 }
 
-/* ❌ REMOVE */
 function removeMatch(i){
   let data = loadData();
   let day = currentDay();
@@ -333,7 +272,6 @@ function save(i){
   saveAuto();
 }
 
-/* 📊 TABLE */
 function renderTable(){
   let data = loadData();
   let table = {};
@@ -376,7 +314,6 @@ function renderTable(){
   document.getElementById("table").innerHTML=html;
 }
 
-/* INIT */
 renderMatchdays();
 renderMatches();
 renderTable();
