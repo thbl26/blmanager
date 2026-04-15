@@ -47,8 +47,6 @@ h1 {
   height: 45px;
   object-fit: contain;
   flex-shrink: 0;
-  image-rendering: auto;
-  transform: translateZ(0);
 }
 
 button {
@@ -180,7 +178,7 @@ function changeMatchday(){
   renderTable();
 }
 
-/* ✅ FIX: stabile Dropdowns ohne Flackern */
+/* ⚡ MATCHES RENDER */
 function renderMatches(){
   let data = loadData();
   let day = currentDay();
@@ -192,19 +190,21 @@ function renderMatches(){
     html += `
     <div class="match">
 
-      <img src="${getLogo(m.team1)}" loading="lazy" decoding="async"
-      onerror="this.src='${fallbackLogo}'">
+      <img class="logo1" src="${getLogo(m.team1)}" loading="lazy">
 
-      <select id="team1-${i}">${teamOptions(m.team1)}</select>
+      <select class="team1" data-index="${i}">
+        ${teamOptions(m.team1)}
+      </select>
 
       <input type="number" id="t1-${i}" value="${m.t1||""}">
       <span style="font-size:18px;">:</span>
       <input type="number" id="t2-${i}" value="${m.t2||""}">
 
-      <select id="team2-${i}">${teamOptions(m.team2)}</select>
+      <select class="team2" data-index="${i}">
+        ${teamOptions(m.team2)}
+      </select>
 
-      <img src="${getLogo(m.team2)}" loading="lazy" decoding="async"
-      onerror="this.src='${fallbackLogo}'">
+      <img class="logo2" src="${getLogo(m.team2)}" loading="lazy">
 
       <button onclick="save(${i})">Speichern</button>
       <button onclick="removeMatch(${i})">❌</button>
@@ -214,15 +214,25 @@ function renderMatches(){
 
   document.getElementById("matches").innerHTML = html;
 
-  /* 🔥 WICHTIG: Events nach Render stabilisieren */
-  document.querySelectorAll("select").forEach(sel=>{
-    sel.onchange = () => {
+  /* ⚡ LIVE LOGO UPDATE */
+  document.querySelectorAll(".team1").forEach(sel=>{
+    sel.onchange = (e) => {
+      const match = e.target.closest(".match");
+      match.querySelector(".logo1").src = getLogo(e.target.value);
+      saveAuto();
+    };
+  });
+
+  document.querySelectorAll(".team2").forEach(sel=>{
+    sel.onchange = (e) => {
+      const match = e.target.closest(".match");
+      match.querySelector(".logo2").src = getLogo(e.target.value);
       saveAuto();
     };
   });
 }
 
-/* ⚡ Autosave ohne Re-Render (fix für Dropdown-Bug) */
+/* ⚡ AUTOSAVE */
 function saveAuto(){
   let data = loadData();
   let day = currentDay();
@@ -231,8 +241,8 @@ function saveAuto(){
   document.querySelectorAll(".match").forEach((el,i)=>{
     if(!matches[i]) return;
 
-    matches[i].team1 = document.getElementById(`team1-${i}`).value;
-    matches[i].team2 = document.getElementById(`team2-${i}`).value;
+    matches[i].team1 = el.querySelector(".team1").value;
+    matches[i].team2 = el.querySelector(".team2").value;
     matches[i].t1 = document.getElementById(`t1-${i}`).value;
     matches[i].t2 = document.getElementById(`t2-${i}`).value;
   });
@@ -272,6 +282,7 @@ function save(i){
   saveAuto();
 }
 
+/* 📊 TABLE */
 function renderTable(){
   let data = loadData();
   let table = {};
@@ -314,6 +325,7 @@ function renderTable(){
   document.getElementById("table").innerHTML=html;
 }
 
+/* INIT */
 renderMatchdays();
 renderMatches();
 renderTable();
